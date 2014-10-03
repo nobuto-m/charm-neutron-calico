@@ -1,7 +1,7 @@
 
 from test_utils import CharmTestCase
 from mock import patch
-import neutron_ovs_context as context
+import neutron_calico_context as context
 import charmhelpers
 TO_PATCH = [
     'relation_get',
@@ -9,20 +9,14 @@ TO_PATCH = [
     'related_units',
     'config',
     'unit_get',
-    'add_bridge',
-    'add_bridge_port',
-    'service_running',
-    'service_start',
     'get_host_ip',
-    'get_nic_hwaddr',
-    'list_nics',
 ]
 
 
-class OVSPluginContextTest(CharmTestCase):
+class CalicoPluginContextTest(CharmTestCase):
 
     def setUp(self):
-        super(OVSPluginContextTest, self).setUp(context, TO_PATCH)
+        super(CalicoPluginContextTest, self).setUp(context, TO_PATCH)
         self.relation_get.side_effect = self.test_relation.get
         self.config.side_effect = self.test_config.get
         self.test_config.set('debug', True)
@@ -30,46 +24,14 @@ class OVSPluginContextTest(CharmTestCase):
         self.test_config.set('use-syslog', True)
 
     def tearDown(self):
-        super(OVSPluginContextTest, self).tearDown()
-
-    def test_data_port_name(self):
-        self.test_config.set('data-port', 'em1')
-        self.assertEquals(context.OVSPluginContext().get_data_port(), 'em1')
-
-    def test_data_port_mac(self):
-        machine_machs = {
-            'em1': 'aa:aa:aa:aa:aa:aa',
-            'eth0': 'bb:bb:bb:bb:bb:bb',
-        }
-        absent_mac = "cc:cc:cc:cc:cc:cc"
-        config_macs = "%s %s" % (absent_mac, machine_machs['em1'])
-        self.test_config.set('data-port', config_macs)
-
-        def get_hwaddr(eth):
-            return machine_machs[eth]
-        self.get_nic_hwaddr.side_effect = get_hwaddr
-        self.list_nics.return_value = machine_machs.keys()
-        self.assertEquals(context.OVSPluginContext().get_data_port(), 'em1')
-
-    @patch.object(context.OVSPluginContext, 'get_data_port')
-    def test_ensure_bridge_data_port_present(self, get_data_port):
-        def add_port(bridge, port, promisc):
-            if bridge == 'br-data' and port == 'em1' and promisc is True:
-                self.bridge_added = True
-                return
-            self.bridge_added = False
-
-        get_data_port.return_value = 'em1'
-        self.add_bridge_port.side_effect = add_port
-        context.OVSPluginContext()._ensure_bridge()
-        self.assertEquals(self.bridge_added, True)
+        super(CalicoPluginContextTest, self).tearDown()
 
     @patch.object(charmhelpers.contrib.openstack.context, 'config')
     @patch.object(charmhelpers.contrib.openstack.context, 'unit_get')
     @patch.object(charmhelpers.contrib.openstack.context, 'is_clustered')
     @patch.object(charmhelpers.contrib.openstack.context, 'https')
-    @patch.object(context.OVSPluginContext, '_save_flag_file')
-    @patch.object(context.OVSPluginContext, '_ensure_packages')
+    @patch.object(context.CalicoPluginContext, '_save_flag_file')
+    @patch.object(context.CalicoPluginContext, '_ensure_packages')
     @patch.object(charmhelpers.contrib.openstack.context,
                   'neutron_plugin_attribute')
     @patch.object(charmhelpers.contrib.openstack.context, 'unit_private_ip')
@@ -82,7 +44,7 @@ class OVSPluginContextTest(CharmTestCase):
             if section == "config":
                 return "neutron.randomconfig"
         _npa.side_effect = mock_npa
-        _config.return_value = 'ovs'
+        _config.return_value = 'Calico'
         _unit_get.return_value = '127.0.0.13'
         _unit_priv_ip.return_value = '127.0.0.14'
         _is_clus.return_value = False
@@ -90,8 +52,7 @@ class OVSPluginContextTest(CharmTestCase):
         self.relation_ids.return_value = ['rid2']
         self.test_relation.set({'neutron-security-groups': 'yes'})
         self.get_host_ip.return_value = '127.0.0.15'
-        self.service_running.return_value = False
-        napi_ctxt = context.OVSPluginContext()
+        napi_ctxt = context.CalicoPluginContext()
         expect = {
             'neutron_alchemy_flags': {},
             'neutron_security_groups': 'yes',
@@ -102,8 +63,8 @@ class OVSPluginContextTest(CharmTestCase):
             'network_manager': 'neutron',
             'debug': True,
             'core_plugin': 'neutron.randomdriver',
-            'neutron_plugin': 'ovs',
-            'neutron_url': 'https://127.0.0.13:9696'
+            'neutron_plugin': 'Calico',
+            'neutron_url': 'https://127.0.0.13:9696',
+            'peer_ips': []
         }
         self.assertEquals(expect, napi_ctxt())
-        self.service_start.assertCalled()

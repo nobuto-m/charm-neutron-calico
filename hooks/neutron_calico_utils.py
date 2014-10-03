@@ -6,30 +6,41 @@ from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
-import neutron_ovs_context
+import neutron_calico_context
 
 NOVA_CONF_DIR = "/etc/nova"
 NEUTRON_CONF_DIR = "/etc/neutron"
 NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
 NEUTRON_DEFAULT = '/etc/default/neutron-server'
 ML2_CONF = '%s/plugins/ml2/ml2_conf.ini' % NEUTRON_CONF_DIR
+DHCP_CONF = "%s/dhcp_agent.ini" % NEUTRON_CONF_DIR
+BIRD_CONF_DIR = "/etc/bird"
+BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
 
 BASE_RESOURCE_MAP = OrderedDict([
     (NEUTRON_CONF, {
-        'services': ['neutron-plugin-openvswitch-agent'],
-        'contexts': [neutron_ovs_context.OVSPluginContext(),
+        'services': ['calico-compute', 'neutron-dhcp-agent'],
+        'contexts': [neutron_calico_context.CalicoPluginContext(),
                      context.AMQPContext()],
     }),
-    (ML2_CONF, {
-        'services': ['neutron-plugin-openvswitch-agent'],
-        'contexts': [neutron_ovs_context.OVSPluginContext()],
+#    (ML2_CONF, {
+#        'services': ['calico-compute'],
+#        'contexts': [neutron_calico_context.CalicoPluginContext()],
+#    }),
+    (BIRD_CONF, {
+        'services': ['bird'],
+        'contexts': [neutron_calico_context.CalicoPluginContext()],
     }),
+    (DHCP_CONF, {
+        'services': ['neutron-dhcp-agent'],
+        'contexts': [neutron_calico_context.CalicoPluginContext()],
+    })
 ])
 TEMPLATES = 'templates/'
 
 
 def determine_packages():
-    return neutron_plugin_attribute('ovs', 'packages', 'neutron')
+    return neutron_plugin_attribute('Calico', 'packages', 'neutron')
 
 
 def register_configs(release=None):

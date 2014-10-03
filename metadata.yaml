@@ -1,7 +1,7 @@
-name: neutron-openvswitch
+name: neutron-calico
 subordinate: true
-maintainer: Liam Young <liam.young@canonical.com>
-summary: "OpenStack Neutron OpenvSwitch Agent"
+maintainer: Cory Benfield <cory.benfield@metaswitch.com>
+summary: "OpenStack Neutron Calico Agent"
 description: |
   Neutron is a virtual network service for Openstack, and a part of
   Netstack. Just like OpenStack Nova provides an API to dynamically
@@ -12,8 +12,8 @@ description: |
   advanced network capabilities (e.g., QoS, ACLs, network monitoring,
   etc.)
   .
-  This charm provides the OpenStack Neutron OpenvSwitch agent, managing
-  L2 connectivity on nova-compute services.
+  This charm provides the OpenStack Neutron Calico Agent, managing
+  L3 connectivity on nova-compute services.
 categories:
   - openstack
 provides:
@@ -28,3 +28,6 @@ requires:
     scope: container
   neutron-plugin-api:
     interface: neutron-plugin-api
+peers:
+  cluster:
+    interface: neutron-calico-ha

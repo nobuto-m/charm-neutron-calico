@@ -5,7 +5,7 @@ from test_utils import CharmTestCase
 
 with patch('charmhelpers.core.hookenv.config') as config:
     config.return_value = 'neutron'
-    import neutron_ovs_utils as utils
+    import neutron_calico_utils as utils
 
 _reg = utils.register_configs
 _map = utils.restart_map
@@ -13,7 +13,7 @@ _map = utils.restart_map
 utils.register_configs = MagicMock()
 utils.restart_map = MagicMock()
 
-import neutron_ovs_hooks as hooks
+import neutron_calico_hooks as hooks
 
 utils.register_configs = _reg
 utils.restart_map = _map
@@ -26,16 +26,17 @@ TO_PATCH = [
     'determine_packages',
     'log',
     'relation_set',
+    'calico_hack',
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
 NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
 
 
-class NeutronOVSHooksTests(CharmTestCase):
+class NeutronCalicoHooksTests(CharmTestCase):
 
     def setUp(self):
-        super(NeutronOVSHooksTests, self).setUp(hooks, TO_PATCH)
+        super(NeutronCalicoHooksTests, self).setUp(hooks, TO_PATCH)
 
         self.config.side_effect = self.test_config.get
 
