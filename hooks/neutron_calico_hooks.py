@@ -24,6 +24,7 @@ from neutron_calico_utils import (
     determine_packages,
     register_configs,
     restart_map,
+    additional_install_locations,
 )
 
 from subprocess import check_call
@@ -31,35 +32,10 @@ from subprocess import check_call
 hooks = Hooks()
 CONFIGS = register_configs()
 
-def calico_hack():
-    env = os.environ.copy()
-
-    check_call(
-        'curl -L http://binaries.projectcalico.org/repo/key | '
-        'apt-key add -',
-        shell=True
-    )
-
-    with open('/etc/apt/sources.list.d/calico.list', 'w') as f:
-        f.write('deb http://binaries.projectcalico.org/repo ./')
-
-    with open('/etc/apt/preferences', 'w') as f:
-        f.write('Package: *\nPin: origin binaries.projectcalico.org\nPin-Priority: 1001\n')
-
-    env['LANG'] = 'en_US.UTF-8'
-    check_call(['add-apt-repository', 'ppa:cz.nic-labs/bird'], env=env)
-
-    apt_update()
-    apt_upgrade(options=['--force-yes'], dist=True)
-
-    return
-
 
 @hooks.hook()
 def install():
-    # FIXME: Remove terrible Calico install hack.
-    calico_hack()
-
+    additional_install_locations()
     apt_update()
     pkgs = determine_packages()
     for pkg in pkgs:

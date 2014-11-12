@@ -6,6 +6,7 @@ from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
+from charmhelpers.fetch import add_source, apt_update, apt_upgrade
 import neutron_calico_context
 
 NOVA_CONF_DIR = "/etc/nova"
@@ -37,6 +38,20 @@ BASE_RESOURCE_MAP = OrderedDict([
     })
 ])
 TEMPLATES = 'templates/'
+
+
+def additional_install_locations():
+    '''
+    Add any required additional install locations of the charm. This
+    will also force an immediate upgrade.
+    '''
+    add_source('ppa:cory-benfield/project-calico')
+    add_source('ppa:cz.nic-labs/bird')
+
+    apt_update()
+    apt_upgrade()
+
+    return
 
 
 def determine_packages():
