@@ -24,10 +24,6 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext(),
                      context.AMQPContext()],
     }),
-#    (ML2_CONF, {
-#        'services': ['calico-compute'],
-#        'contexts': [neutron_calico_context.CalicoPluginContext()],
-#    }),
     (BIRD_CONF, {
         'services': ['bird'],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
