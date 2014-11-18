@@ -28,6 +28,8 @@ requires:
     scope: container
   neutron-plugin-api:
     interface: neutron-plugin-api
+  calico-acl-api:
+    interface: calico-acl-api
 peers:
   cluster:
     interface: neutron-calico-ha

@@ -81,9 +81,9 @@ class TestNeutronCalicoUtils(CharmTestCase):
         templating.OSConfigRenderer.side_effect = _mock_OSConfigRenderer
         _regconfs = nutils.register_configs()
         confs = ['/etc/neutron/neutron.conf',
-                 '/etc/neutron/plugins/ml2/ml2_conf.ini',
                  '/etc/bird/bird.conf',
-                 '/etc/neutron/dhcp_agent.ini']
+                 '/etc/neutron/dhcp_agent.ini',
+                 '/etc/calico/felix.cfg']
         self.assertItemsEqual(_regconfs.configs, confs)
 
     def test_resource_map(self):
@@ -95,10 +95,10 @@ class TestNeutronCalicoUtils(CharmTestCase):
         _restart_map = nutils.restart_map()
         ML2CONF = "/etc/neutron/plugins/ml2/ml2_conf.ini"
         expect = OrderedDict([
-            (nutils.NEUTRON_CONF, ['calico-compute']),
-            (ML2CONF, ['calico-compute']),
+            (nutils.NEUTRON_CONF, ['calico-compute', 'neutron-dhcp-agent']),
             (nutils.BIRD_CONF, ['bird']),
             (nutils.DHCP_CONF, ['neutron-dhcp-agent']),
+            (nutils.FELIX_CONF, ['calico-compute']),
         ])
         print _restart_map
         self.assertTrue(len(expect) == len(_restart_map))

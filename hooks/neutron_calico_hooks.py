@@ -47,6 +47,7 @@ def install():
 @hooks.hook('config-changed')
 @hooks.hook('cluster-relation-changed')
 @hooks.hook('cluster-relation-departed')
+@hooks.hook('calico-network-api-relation-changed')
 @restart_on_change(restart_map())
 def config_changed():
     CONFIGS.write_all()

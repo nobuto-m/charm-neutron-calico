@@ -65,6 +65,8 @@ class CalicoPluginContextTest(CharmTestCase):
             'core_plugin': 'neutron.randomdriver',
             'neutron_plugin': 'Calico',
             'neutron_url': 'https://127.0.0.13:9696',
-            'peer_ips': []
+            'peer_ips': [],
+            'acl_manager_ip': '',
+            'plugin_ip': '',
         }
         self.assertEquals(expect, napi_ctxt())

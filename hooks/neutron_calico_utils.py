@@ -14,6 +14,7 @@ NEUTRON_CONF_DIR = "/etc/neutron"
 NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
 NEUTRON_DEFAULT = '/etc/default/neutron-server'
 ML2_CONF = '%s/plugins/ml2/ml2_conf.ini' % NEUTRON_CONF_DIR
+FELIX_CONF = '/etc/calico/felix.cfg'
 DHCP_CONF = "%s/dhcp_agent.ini" % NEUTRON_CONF_DIR
 BIRD_CONF_DIR = "/etc/bird"
 BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
@@ -30,6 +31,10 @@ BASE_RESOURCE_MAP = OrderedDict([
     }),
     (DHCP_CONF, {
         'services': ['neutron-dhcp-agent'],
+        'contexts': [neutron_calico_context.CalicoPluginContext()],
+    }),
+    (FELIX_CONF, {
+        'services': ['calico-compute'],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     })
 ])

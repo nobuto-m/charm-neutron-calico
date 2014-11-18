@@ -27,6 +27,42 @@ def _neutron_security_groups():
     return False
 
 
+def _acl_manager_ips():
+    '''
+    Inspects current calico-acl-api relation and determines what the IP
+    addresses of the ACL managers are.
+
+    Currently multiple ACL managers are not supported by Calico.
+    '''
+    for rid in relation_ids('calico-acl-api'):
+        for unit in related_units(rid):
+            acl_mgr = relation_get('calico-acl-api',
+                                   rid=rid,
+                                   unit=unit)
+            if acl_mgr is not None:
+                return acl_mgr
+
+    return ''
+
+
+def _plugin_ips():
+    '''
+    Insepcts the current neutron-plugin relation and determines the IP
+    address of the neutron-api install, which is where the Calico plugin
+    lives.
+    '''
+    for rid in relation_ids('neutron-plugin-api'):
+        for unit in related_units(rid):
+            rel = relation_get(attribute='addr', rid=rid, unit=unit)
+
+            if rel is not None:
+                # rel will be a domain name. Map it to an IP
+                ip = socket.getaddrinfo(rel, None)[0][4][0]
+                return ip
+
+    return ''
+
+
 class CalicoPluginContext(context.NeutronContext):
     interfaces = []
 
@@ -42,6 +78,14 @@ class CalicoPluginContext(context.NeutronContext):
     def neutron_security_groups(self):
         return _neutron_security_groups()
 
+    @property
+    def acl_manager_ips(self):
+        return _acl_manager_ips()
+
+    @property
+    def plugin_ips(self):
+        return _plugin_ips()
+
     def calico_ctxt(self):
         calico_ctxt = super(CalicoPluginContext, self).calico_ctxt()
         if not calico_ctxt:
@@ -56,6 +100,10 @@ class CalicoPluginContext(context.NeutronContext):
         calico_ctxt['verbose'] = conf['verbose']
         calico_ctxt['debug'] = conf['debug']
         calico_ctxt['peer_ips'] = []
+
+        # We need the ACL manager IP. Currently we only allow one.
+        calico_ctxt['acl_manager_ip'] = self.acl_manager_ips
+        calico_ctxt['plugin_ip'] = self.plugin_ips
 
         for rid in relation_ids('cluster'):
             for unit in related_units(rid):

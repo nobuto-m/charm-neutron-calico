@@ -26,7 +26,7 @@ TO_PATCH = [
     'determine_packages',
     'log',
     'relation_set',
-    'calico_hack',
+    'additional_install_locations',
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
