@@ -19,5 +19,4 @@ sync: bin/charm_helpers_sync.py
 	@$(PYTHON) bin/charm_helpers_sync.py -c charm-helpers-sync.yaml
 
 publish: lint test
-	bzr push lp:charms/neutron-openvswitch
-	bzr push lp:charms/trusty/neutron-openvswitch
+	bzr push lp:~cory-benfield/calico-charms/neutron-calico
