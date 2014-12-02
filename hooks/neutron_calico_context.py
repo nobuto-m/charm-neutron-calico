@@ -36,7 +36,7 @@ def _acl_manager_ips():
     '''
     for rid in relation_ids('calico-acl-api'):
         for unit in related_units(rid):
-            acl_mgr = relation_get('calico-acl-api',
+            acl_mgr = relation_get('manager_addr',
                                    rid=rid,
                                    unit=unit)
             if acl_mgr is not None:
@@ -86,6 +86,20 @@ class CalicoPluginContext(context.NeutronContext):
     def plugin_ips(self):
         return _plugin_ips()
 
+    def addrs_from_relation(self, relation):
+        addrs = []
+
+        for rid in relation_ids(relation):
+            for unit in related_units(rid):
+                rel = relation_get(attribute='addr', rid=rid, unit=unit)
+
+                if rel is not None:
+                    # rel will be a domain name. Map it to an IP
+                    ip = socket.getaddrinfo(rel, None)[0][4][0]
+                    addrs.append(ip)
+
+        return addrs
+
     def calico_ctxt(self):
         calico_ctxt = super(CalicoPluginContext, self).calico_ctxt()
         if not calico_ctxt:
@@ -105,14 +119,11 @@ class CalicoPluginContext(context.NeutronContext):
         calico_ctxt['acl_manager_ip'] = self.acl_manager_ips
         calico_ctxt['plugin_ip'] = self.plugin_ips
 
-        for rid in relation_ids('cluster'):
-            for unit in related_units(rid):
-                rel = relation_get(attribute='addr', rid=rid, unit=unit)
+        # Our BGP peers are either route reflectors or our cluster peers.
+        # Prefer route reflectors.
+        calico_ctxt['peer_ips'] = self.addrs_from_relation('bgp-route-reflector')
 
-                if rel is not None:
-                    # rel will be a domain name. Map it to an IP
-                    ip = socket.getaddrinfo(rel, None)[0][4][0]
-                    calico_ctxt['peer_ips'].append(ip)
+        if not calico_ctxt['peer_ips']:
+            calico_ctxt['peer_ips'] = self.addrs_from_relation('cluster')
 
         return calico_ctxt
-

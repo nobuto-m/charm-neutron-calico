@@ -39,7 +39,9 @@ def _mock_npa(plugin, attr, net_manager=None):
             'driver': 'neutron.plugins.ml2.plugin.Ml2Plugin',
             'contexts': [],
             'services': ['calico-compute', 'bird', 'neutron-dhcp-agent'],
-            'packages': [[head_pkg], ['calico-compute', 'bird', 'neutron-dhcp-agent']],
+            'packages': [[head_pkg], ['calico-compute',
+                                      'bird',
+                                      'neutron-dhcp-agent']],
             'server_packages': ['neutron-server',
                                 'calico-control'],
             'server_services': ['neutron-server']
@@ -93,9 +95,10 @@ class TestNeutronCalicoUtils(CharmTestCase):
 
     def test_restart_map(self):
         _restart_map = nutils.restart_map()
-        ML2CONF = "/etc/neutron/plugins/ml2/ml2_conf.ini"
         expect = OrderedDict([
-            (nutils.NEUTRON_CONF, ['calico-compute', 'neutron-dhcp-agent']),
+            (nutils.NEUTRON_CONF, ['calico-compute',
+                                   'neutron-dhcp-agent',
+                                   'nova-api-metadata']),
             (nutils.BIRD_CONF, ['bird']),
             (nutils.DHCP_CONF, ['neutron-dhcp-agent']),
             (nutils.FELIX_CONF, ['calico-compute']),
@@ -104,4 +107,4 @@ class TestNeutronCalicoUtils(CharmTestCase):
         self.assertTrue(len(expect) == len(_restart_map))
         for item in _restart_map:
             self.assertTrue(item in _restart_map)
-            self.assertTrue(expect[item] == _restart_map[item])
+            self.assertEqual(expect[item], _restart_map[item])

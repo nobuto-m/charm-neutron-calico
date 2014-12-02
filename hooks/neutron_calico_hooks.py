@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import sys
-import os
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -17,7 +16,7 @@ from charmhelpers.core.host import (
 )
 
 from charmhelpers.fetch import (
-    apt_install, apt_update, apt_upgrade
+    apt_install, apt_update
 )
 
 from neutron_calico_utils import (
@@ -26,8 +25,6 @@ from neutron_calico_utils import (
     restart_map,
     additional_install_locations,
 )
-
-from subprocess import check_call
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -47,7 +44,7 @@ def install():
 @hooks.hook('config-changed')
 @hooks.hook('cluster-relation-changed')
 @hooks.hook('cluster-relation-departed')
-@hooks.hook('calico-network-api-relation-changed')
+@hooks.hook('calico-acl-api-relation-changed')
 @restart_on_change(restart_map())
 def config_changed():
     CONFIGS.write_all()
@@ -72,6 +69,12 @@ def amqp_changed():
 
 @hooks.hook('cluster-relation-joined')
 def cluster_joined(relation_id=None):
+    relation_set(relation_id=relation_id,
+                 addr=unit_private_ip())
+
+
+@hooks.hook('bgp-route-reflector-relation-joined')
+def bgp_route_reflector_joined(relation_id=None):
     relation_set(relation_id=relation_id,
                  addr=unit_private_ip())
 

@@ -1,3 +1,4 @@
+import os
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
@@ -6,7 +7,12 @@ from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
 )
-from charmhelpers.fetch import add_source, apt_update, apt_upgrade
+from charmhelpers.fetch import (
+    add_source,
+    apt_update,
+    apt_upgrade,
+    apt_install
+)
 import neutron_calico_context
 
 NOVA_CONF_DIR = "/etc/nova"
@@ -21,7 +27,9 @@ BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
 
 BASE_RESOURCE_MAP = OrderedDict([
     (NEUTRON_CONF, {
-        'services': ['calico-compute', 'neutron-dhcp-agent'],
+        'services': ['calico-felix',
+                     'neutron-dhcp-agent',
+                     'nova-api-metadata'],
         'contexts': [neutron_calico_context.CalicoPluginContext(),
                      context.AMQPContext()],
     }),
@@ -34,7 +42,7 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     }),
     (FELIX_CONF, {
-        'services': ['calico-compute'],
+        'services': ['calico-felix'],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     })
 ])
@@ -46,11 +54,17 @@ def additional_install_locations():
     Add any required additional install locations of the charm. This
     will also force an immediate upgrade.
     '''
+    # Temporary hack to get the PPA to work.
+    os.environ['LANG'] = 'en_US.UTF-8'
     add_source('ppa:cory-benfield/project-calico')
     add_source('ppa:cz.nic-labs/bird')
 
     apt_update()
     apt_upgrade()
+
+    # The new version of dnsmasq brings in new dependencies, so we need
+    # to explicitly install it.
+    apt_install(['dnsmasq-base'])
 
     return
 

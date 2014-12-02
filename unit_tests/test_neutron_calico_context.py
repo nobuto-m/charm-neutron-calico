@@ -50,7 +50,10 @@ class CalicoPluginContextTest(CharmTestCase):
         _is_clus.return_value = False
         self.related_units.return_value = ['unit1']
         self.relation_ids.return_value = ['rid2']
-        self.test_relation.set({'neutron-security-groups': 'yes'})
+        self.test_relation.set({
+            'neutron-security-groups': 'yes',
+            'addr': '127.0.0.16'
+        })
         self.get_host_ip.return_value = '127.0.0.15'
         napi_ctxt = context.CalicoPluginContext()
         expect = {
@@ -65,8 +68,8 @@ class CalicoPluginContextTest(CharmTestCase):
             'core_plugin': 'neutron.randomdriver',
             'neutron_plugin': 'Calico',
             'neutron_url': 'https://127.0.0.13:9696',
-            'peer_ips': [],
+            'peer_ips': ['127.0.0.16'],
             'acl_manager_ip': '',
-            'plugin_ip': '',
+            'plugin_ip': '127.0.0.16',
         }
         self.assertEquals(expect, napi_ctxt())
