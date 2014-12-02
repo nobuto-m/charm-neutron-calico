@@ -96,12 +96,12 @@ class TestNeutronCalicoUtils(CharmTestCase):
     def test_restart_map(self):
         _restart_map = nutils.restart_map()
         expect = OrderedDict([
-            (nutils.NEUTRON_CONF, ['calico-compute',
+            (nutils.NEUTRON_CONF, ['calico-felix',
                                    'neutron-dhcp-agent',
                                    'nova-api-metadata']),
             (nutils.BIRD_CONF, ['bird']),
             (nutils.DHCP_CONF, ['neutron-dhcp-agent']),
-            (nutils.FELIX_CONF, ['calico-compute']),
+            (nutils.FELIX_CONF, ['calico-felix']),
         ])
         print _restart_map
         self.assertTrue(len(expect) == len(_restart_map))
