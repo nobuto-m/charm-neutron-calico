@@ -1,7 +1,10 @@
 import os
+import netaddr
+import netifaces
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
+from charmhelpers.core.hookenv import config
 from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
@@ -24,6 +27,7 @@ FELIX_CONF = '/etc/calico/felix.cfg'
 DHCP_CONF = "%s/dhcp_agent.ini" % NEUTRON_CONF_DIR
 BIRD_CONF_DIR = "/etc/bird"
 BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
+BIRD6_CONF = "%s/bird6.conf" % BIRD_CONF_DIR
 
 BASE_RESOURCE_MAP = OrderedDict([
     (NEUTRON_CONF, {
@@ -46,6 +50,10 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     })
 ])
+BIRD6_RESOURCE_MAP = {
+    'services': ['bird6'],
+    'contexts': [neutron_calico_context.CalicoPluginContext()],
+}
 TEMPLATES = 'templates/'
 
 
@@ -88,6 +96,10 @@ def resource_map():
     hook execution.
     '''
     resource_map = deepcopy(BASE_RESOURCE_MAP)
+
+    if config('enable-ipv6'):
+        resource_map[BIRD6_CONF] = BIRD6_RESOURCE_MAP
+
     return resource_map
 
 
@@ -97,3 +109,21 @@ def restart_map():
     state.
     '''
     return {k: v['services'] for k, v in resource_map().iteritems()}
+
+
+def local_ipv6_address():
+    '''
+    Determines the IPv6 address to use to contact this machine. Excludes
+    link-local addresses.
+
+    Currently only returns the first valid IPv6 address found.
+    '''
+    for iface in netifaces.interfaces():
+        addresses = netifaces.ifaddresses(iface)
+
+        for addr in addresses.get(netifaces.AF_INET6, []):
+            # Make sure we strip any interface specifier from the address.
+            addr = netaddr.IPAddress(addr['addr'].split('%')[0])
+
+            if not (addr.is_link_local() or addr.is_loopback()):
+                return str(addr)

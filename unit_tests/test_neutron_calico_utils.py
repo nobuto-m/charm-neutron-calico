@@ -12,11 +12,13 @@ from test_utils import (
 )
 import charmhelpers
 import charmhelpers.core.hookenv as hookenv
+import netifaces
 
 
 TO_PATCH = [
     'os_release',
     'neutron_plugin_attribute',
+    'config',
 ]
 
 head_pkg = 'linux-headers-3.15.0-5-generic'
@@ -79,6 +81,7 @@ class TestNeutronCalicoUtils(CharmTestCase):
                 self.configs.append(config)
                 self.ctxts.append(ctxt)
 
+        self.config.return_value = False
         self.os_release.return_value = 'trusty'
         templating.OSConfigRenderer.side_effect = _mock_OSConfigRenderer
         _regconfs = nutils.register_configs()
@@ -88,12 +91,35 @@ class TestNeutronCalicoUtils(CharmTestCase):
                  '/etc/calico/felix.cfg']
         self.assertItemsEqual(_regconfs.configs, confs)
 
+    def test_register_configs_ipv6(self):
+        class _mock_OSConfigRenderer():
+            def __init__(self, templates_dir=None, openstack_release=None):
+                self.configs = []
+                self.ctxts = []
+
+            def register(self, config, ctxt):
+                self.configs.append(config)
+                self.ctxts.append(ctxt)
+
+        self.os_release.return_value = 'trusty'
+        templating.OSConfigRenderer.side_effect = _mock_OSConfigRenderer
+        self.config.return_value = True
+        _regconfs = nutils.register_configs()
+        confs = ['/etc/neutron/neutron.conf',
+                 '/etc/bird/bird.conf',
+                 '/etc/neutron/dhcp_agent.ini',
+                 '/etc/calico/felix.cfg',
+                 '/etc/bird/bird6.conf']
+        self.assertItemsEqual(_regconfs.configs, confs)
+        self.assertTrue(self.config.called_once_with('enable-ipv6'))
+
     def test_resource_map(self):
         _map = nutils.resource_map()
         confs = [nutils.NEUTRON_CONF]
         [self.assertIn(q_conf, _map.keys()) for q_conf in confs]
 
     def test_restart_map(self):
+        self.config.return_value = False
         _restart_map = nutils.restart_map()
         expect = OrderedDict([
             (nutils.NEUTRON_CONF, ['calico-felix',
@@ -103,8 +129,42 @@ class TestNeutronCalicoUtils(CharmTestCase):
             (nutils.DHCP_CONF, ['neutron-dhcp-agent']),
             (nutils.FELIX_CONF, ['calico-felix']),
         ])
-        print _restart_map
-        self.assertTrue(len(expect) == len(_restart_map))
+        self.assertEqual(len(expect), len(_restart_map))
         for item in _restart_map:
             self.assertTrue(item in _restart_map)
             self.assertEqual(expect[item], _restart_map[item])
+
+        self.config.return_value = True
+
+        expect[nutils.BIRD6_CONF] = ['bird6']
+        _restart_map = nutils.restart_map()
+        self.assertEqual(len(expect), len(_restart_map))
+        for item in _restart_map:
+            self.assertTrue(item in _restart_map)
+            self.assertEqual(expect[item], _restart_map[item])
+
+    @patch.object(netifaces, 'interfaces')
+    @patch.object(netifaces, 'ifaddresses')
+    def test_local_ipv6_address_one_addr(self, ifaddresses, interfaces):
+        interfaces.return_value = ['eth0']
+        ifaddresses.return_value = {
+            netifaces.AF_INET6: [
+                {'addr':'fe80::01%eth0'}, {'addr':'aa::04'}
+            ]
+        }
+
+        addr = nutils.local_ipv6_address()
+        self.assertEqual(addr, 'aa::4')
+
+    @patch.object(netifaces, 'interfaces')
+    @patch.object(netifaces, 'ifaddresses')
+    def test_local_ipv6_address_no_addr(self, ifaddresses, interfaces):
+        interfaces.return_value = ['eth0']
+        ifaddresses.return_value = {
+            netifaces.AF_INET6: [
+                {'addr':'fe80::01%eth0'}
+            ]
+        }
+
+        addr = nutils.local_ipv6_address()
+        self.assertEqual(addr, None)

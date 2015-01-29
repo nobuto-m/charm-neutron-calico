@@ -52,7 +52,8 @@ class CalicoPluginContextTest(CharmTestCase):
         self.relation_ids.return_value = ['rid2']
         self.test_relation.set({
             'neutron-security-groups': 'yes',
-            'addr': '127.0.0.16'
+            'addr': '127.0.0.16',
+            'addr6': 'aa::1',
         })
         self.get_host_ip.return_value = '127.0.0.15'
         napi_ctxt = context.CalicoPluginContext()
@@ -69,6 +70,7 @@ class CalicoPluginContextTest(CharmTestCase):
             'neutron_plugin': 'Calico',
             'neutron_url': 'https://127.0.0.13:9696',
             'peer_ips': ['127.0.0.16'],
+            'peer_ips6': ['aa::1'],
             'acl_manager_ip': '',
             'plugin_ip': '127.0.0.16',
         }

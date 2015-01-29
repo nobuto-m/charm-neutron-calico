@@ -21,3 +21,9 @@ options:
     default: False
     type: boolean
     description: Enable verbose logging
+  enable-ipv6:
+    default: False
+    type: boolean
+    description: |
+      Enable Calico's IPv6 support. Requires that all nodes with this
+      charm installed on them have global scope IPv6 addresses.

@@ -24,6 +24,7 @@ from neutron_calico_utils import (
     register_configs,
     restart_map,
     additional_install_locations,
+    local_ipv6_address,
 )
 
 hooks = Hooks()
@@ -41,12 +42,21 @@ def install():
 
 @hooks.hook('neutron-plugin-relation-changed')
 @hooks.hook('neutron-plugin-api-relation-changed')
-@hooks.hook('config-changed')
 @hooks.hook('cluster-relation-changed')
 @hooks.hook('cluster-relation-departed')
 @hooks.hook('calico-acl-api-relation-changed')
+@hooks.hook('bgp-route-reflector-relation-changed')
+@hooks.hook('bgp-route-reflector-relation-departed')
+@restart_on_change(restart_map())
+def generic_relation_changed():
+    CONFIGS.write_all()
+
+
+@hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
+    global CONFIGS
+    CONFIGS = register_configs()
     CONFIGS.write_all()
 
 
@@ -70,13 +80,15 @@ def amqp_changed():
 @hooks.hook('cluster-relation-joined')
 def cluster_joined(relation_id=None):
     relation_set(relation_id=relation_id,
-                 addr=unit_private_ip())
+                 addr=unit_private_ip(),
+                 addr6=local_ipv6_address())
 
 
 @hooks.hook('bgp-route-reflector-relation-joined')
 def bgp_route_reflector_joined(relation_id=None):
     relation_set(relation_id=relation_id,
-                 addr=unit_private_ip())
+                 addr=unit_private_ip(),
+                 addr6=local_ipv6_address())
 
 
 def main():

@@ -27,6 +27,7 @@ TO_PATCH = [
     'log',
     'relation_set',
     'additional_install_locations',
+    'register_configs'
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
@@ -54,8 +55,10 @@ class NeutronCalicoHooksTests(CharmTestCase):
         ])
 
     def test_config_changed(self):
+        self.register_configs.return_value = self.CONFIGS
         self._call_hook('config-changed')
         self.assertTrue(self.CONFIGS.write_all.called)
+        self.assertTrue(self.register_configs.called)
 
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')

@@ -1,5 +1,8 @@
 import socket
 
+import netifaces
+import netaddr
+
 from charmhelpers.core.hookenv import (
     relation_ids,
     related_units,
@@ -86,17 +89,27 @@ class CalicoPluginContext(context.NeutronContext):
     def plugin_ips(self):
         return _plugin_ips()
 
-    def addrs_from_relation(self, relation):
+    def addrs_from_relation(self, relation, ip_version=4):
         addrs = []
+        attribute = 'addr'
+
+        if ip_version == 6:
+            attribute += '6'
 
         for rid in relation_ids(relation):
             for unit in related_units(rid):
-                rel = relation_get(attribute='addr', rid=rid, unit=unit)
+                rel = relation_get(attribute=attribute, rid=rid, unit=unit)
 
-                if rel is not None:
+                if rel is None:
+                    continue
+
+                if ip_version == 4:
                     # rel will be a domain name. Map it to an IP
                     ip = socket.getaddrinfo(rel, None)[0][4][0]
                     addrs.append(ip)
+                else:
+                    # We don't use domain names for IPv6.
+                    addrs.append(rel)
 
         return addrs
 
@@ -114,6 +127,7 @@ class CalicoPluginContext(context.NeutronContext):
         calico_ctxt['verbose'] = conf['verbose']
         calico_ctxt['debug'] = conf['debug']
         calico_ctxt['peer_ips'] = []
+        calico_ctxt['peer_ips6'] = []
 
         # We need the ACL manager IP. Currently we only allow one.
         calico_ctxt['acl_manager_ip'] = self.acl_manager_ips
@@ -122,8 +136,12 @@ class CalicoPluginContext(context.NeutronContext):
         # Our BGP peers are either route reflectors or our cluster peers.
         # Prefer route reflectors.
         calico_ctxt['peer_ips'] = self.addrs_from_relation('bgp-route-reflector')
+        calico_ctxt['peer_ips6'] = self.addrs_from_relation('bgp-route-reflector', ip_version=6)
 
         if not calico_ctxt['peer_ips']:
             calico_ctxt['peer_ips'] = self.addrs_from_relation('cluster')
+
+        if not calico_ctxt['peer_ips6']:
+            calico_ctxt['peer_ips6'] = self.addrs_from_relation('cluster', ip_version=6)
 
         return calico_ctxt
