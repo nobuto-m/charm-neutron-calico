@@ -1,4 +1,11 @@
 options:
+  calico-origin:
+    default: default
+    type: string
+    description: |
+      Repository from which to install Calico packages. May be one of the
+      following options: default, or ppa:somecustom/ppa. Note that this
+      must be set before the 'install' hook runs.
   rabbit-user:
     default: neutron
     type: string

@@ -62,9 +62,14 @@ def additional_install_locations():
     Add any required additional install locations of the charm. This
     will also force an immediate upgrade.
     '''
+    default_source = 'ppa:cory-benfield/project-calico'
+
+    if config('calico-origin') != 'default':
+        default_source = config('calico-origin')
+
     # Temporary hack to get the PPA to work.
     os.environ['LANG'] = 'en_US.UTF-8'
-    add_source('ppa:cory-benfield/project-calico')
+    add_source(default_source)
     add_source('ppa:cz.nic-labs/bird')
 
     apt_update()
