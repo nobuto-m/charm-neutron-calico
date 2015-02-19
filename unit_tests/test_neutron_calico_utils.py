@@ -149,7 +149,7 @@ class TestNeutronCalicoUtils(CharmTestCase):
         interfaces.return_value = ['eth0']
         ifaddresses.return_value = {
             netifaces.AF_INET6: [
-                {'addr':'fe80::01%eth0'}, {'addr':'aa::04'}
+                {'addr': 'fe80::01%eth0'}, {'addr': 'aa::04'}
             ]
         }
 
@@ -162,7 +162,7 @@ class TestNeutronCalicoUtils(CharmTestCase):
         interfaces.return_value = ['eth0']
         ifaddresses.return_value = {
             netifaces.AF_INET6: [
-                {'addr':'fe80::01%eth0'}
+                {'addr': 'fe80::01%eth0'}
             ]
         }
 

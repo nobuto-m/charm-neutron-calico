@@ -1,8 +1,5 @@
 import socket
 
-import netifaces
-import netaddr
-
 from charmhelpers.core.hookenv import (
     relation_ids,
     related_units,
@@ -135,13 +132,21 @@ class CalicoPluginContext(context.NeutronContext):
 
         # Our BGP peers are either route reflectors or our cluster peers.
         # Prefer route reflectors.
-        calico_ctxt['peer_ips'] = self.addrs_from_relation('bgp-route-reflector')
-        calico_ctxt['peer_ips6'] = self.addrs_from_relation('bgp-route-reflector', ip_version=6)
+        calico_ctxt['peer_ips'] = self.addrs_from_relation(
+            'bgp-route-reflector'
+        )
+        calico_ctxt['peer_ips6'] = self.addrs_from_relation(
+            'bgp-route-reflector',
+            ip_version=6
+        )
 
         if not calico_ctxt['peer_ips']:
             calico_ctxt['peer_ips'] = self.addrs_from_relation('cluster')
 
         if not calico_ctxt['peer_ips6']:
-            calico_ctxt['peer_ips6'] = self.addrs_from_relation('cluster', ip_version=6)
+            calico_ctxt['peer_ips6'] = self.addrs_from_relation(
+                'cluster',
+                ip_version=6
+            )
 
         return calico_ctxt
