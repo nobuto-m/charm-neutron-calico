@@ -6,9 +6,11 @@ lint:
 	@flake8 --exclude hooks/charmhelpers unit_tests
 	@charm proof
 
-test:
+testdep:
+	@sudo apt-get install -q -y python-nose python-mock python-netaddr python-netifaces
+
+test: testdep
 	@echo Starting tests...
-	@apt-get install -q -y python-nose python-mock python-netaddr python-netifaces
 	@$(PYTHON) /usr/bin/nosetests --nologcapture unit_tests
 
 bin/charm_helpers_sync.py:
