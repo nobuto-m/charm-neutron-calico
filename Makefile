@@ -8,6 +8,7 @@ lint:
 
 test:
 	@echo Starting tests...
+	@apt-get install -q -y python-nose python-mock python-netaddr python-netifaces
 	@$(PYTHON) /usr/bin/nosetests --nologcapture unit_tests
 
 bin/charm_helpers_sync.py:
