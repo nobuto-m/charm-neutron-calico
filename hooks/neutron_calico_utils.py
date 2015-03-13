@@ -62,7 +62,7 @@ def additional_install_locations():
     Add any required additional install locations of the charm. This
     will also force an immediate upgrade.
     '''
-    default_source = 'ppa:cory-benfield/project-calico'
+    default_source = 'ppa:project-calico/icehouse'
 
     if config('calico-origin') != 'default':
         default_source = config('calico-origin')
