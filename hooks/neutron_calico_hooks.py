@@ -47,7 +47,6 @@ def install():
 @hooks.hook('neutron-plugin-api-relation-changed')
 @hooks.hook('cluster-relation-changed')
 @hooks.hook('cluster-relation-departed')
-@hooks.hook('calico-acl-api-relation-changed')
 @hooks.hook('bgp-route-reflector-relation-changed')
 @hooks.hook('bgp-route-reflector-relation-departed')
 @restart_on_change(restart_map())

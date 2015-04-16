@@ -28,8 +28,6 @@ requires:
     scope: container
   neutron-plugin-api:
     interface: neutron-plugin-api
-  calico-acl-api:
-    interface: calico-acl-api
   bgp-route-reflector:
     interface: bgp-route-reflector
   etcd-peer:
