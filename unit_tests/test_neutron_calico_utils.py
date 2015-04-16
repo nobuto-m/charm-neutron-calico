@@ -19,6 +19,10 @@ TO_PATCH = [
     'os_release',
     'neutron_plugin_attribute',
     'config',
+    'service_stop',
+    'service_start',
+    'glob',
+    'shutil',
 ]
 
 head_pkg = 'linux-headers-3.15.0-5-generic'
@@ -168,3 +172,14 @@ class TestNeutronCalicoUtils(CharmTestCase):
 
         addr = nutils.local_ipv6_address()
         self.assertEqual(addr, None)
+
+    def test_force_etcd_restart(self):
+        self.glob.glob.return_value = [
+            '/var/lib/etcd/one', '/var/lib/etcd/two'
+        ]
+        nutils.force_etcd_restart()
+        self.service_stop.assert_called_once_with('etcd')
+        self.glob.glob.assert_called_once_with('/var/lib/etcd/*')
+        self.shutil.rmtree.assert_any_call('/var/lib/etcd/one')
+        self.shutil.rmtree.assert_any_call('/var/lib/etcd/two')
+        self.service_start.assert_called_once_with('etcd')

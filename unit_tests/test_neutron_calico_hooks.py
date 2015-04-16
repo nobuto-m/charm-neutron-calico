@@ -27,7 +27,8 @@ TO_PATCH = [
     'log',
     'relation_set',
     'additional_install_locations',
-    'register_configs'
+    'register_configs',
+    'force_etcd_restart',
 ]
 NEUTRON_CONF_DIR = "/etc/neutron"
 
@@ -76,3 +77,9 @@ class NeutronCalicoHooksTests(CharmTestCase):
     def test_amqp_departed(self):
         self._call_hook('amqp-relation-departed')
         self.assertTrue(self.CONFIGS.write.called_with(NEUTRON_CONF))
+
+    def test_etcd_peer_joined(self):
+        self._call_hook('etcd-peer-relation-joined')
+        self.assertTrue(self.CONFIGS.register.called)
+        self.CONFIGS.write.assert_called_with('/etc/init/etcd.conf')
+        self.force_etcd_restart.assert_called_once_with()

@@ -71,7 +71,39 @@ class CalicoPluginContextTest(CharmTestCase):
             'neutron_url': 'https://127.0.0.13:9696',
             'peer_ips': ['127.0.0.16'],
             'peer_ips6': ['aa::1'],
-            'acl_manager_ip': '',
             'plugin_ip': '127.0.0.16',
         }
         self.assertEquals(expect, napi_ctxt())
+
+
+class EtcdContextTest(CharmTestCase):
+
+    def setUp(self):
+        super(EtcdContextTest, self).setUp(context, TO_PATCH)
+        self.relation_get.side_effect = self.test_relation.get
+
+    def tearDown(self):
+        super(EtcdContextTest, self).tearDown()
+
+    def test_etcd_no_related_units(self):
+        self.related_units.return_value = []
+        ctxt = context.EtcdContext()
+        expect = {'cluster': ''}
+
+        self.assertEquals(expect, ctxt())
+
+    def test_some_related_units(self):
+        self.related_units.return_value = ['unit1']
+        self.relation_ids.return_value = ['rid1', 'rid2']
+        self.test_relation.set({'ip': '172.18.18.18',
+                                'port': 8888,
+                                'name': 'testname'})
+        result = (
+            'testname=http://172.18.18.18:8888,'
+            'testname=http://172.18.18.18:8888'
+        )
+
+        ctxt = context.EtcdContext()
+        expect = {'cluster': result}
+
+        self.assertEquals(expect, ctxt())
