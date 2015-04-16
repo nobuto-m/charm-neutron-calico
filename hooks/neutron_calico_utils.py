@@ -1,10 +1,13 @@
 import os
+import shutil
+import glob
 import netaddr
 import netifaces
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
 from charmhelpers.core.hookenv import config
+from charmhelpers.core.host import service_stop, service_start
 from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
@@ -132,3 +135,15 @@ def local_ipv6_address():
 
             if not (addr.is_link_local() or addr.is_loopback()):
                 return str(addr)
+
+
+def force_etcd_restart():
+    '''
+    If etcd has been reconfigured we need to force it to fully restart.
+    This is necessary because etcd has some config flags that it ignores
+    after the first time it starts, so we need to make it forget them.
+    '''
+    service_stop('etcd')
+    for directory in glob.glob('/var/lib/etcd/*'):
+        shutil.rmtree(directory)
+    service_start('etcd')

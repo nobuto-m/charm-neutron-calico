@@ -32,6 +32,8 @@ requires:
     interface: calico-acl-api
   bgp-route-reflector:
     interface: bgp-route-reflector
+  etcd-peer:
+    interface: http
 peers:
   cluster:
     interface: neutron-calico-ha

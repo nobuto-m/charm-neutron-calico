@@ -150,3 +150,25 @@ class CalicoPluginContext(context.NeutronContext):
             )
 
         return calico_ctxt
+
+
+class EtcdContext(context.OSContextGenerator):
+    interfaces = ['etcd-peer']
+
+    def __call__(self):
+        ctxt = {
+            'peers': [],
+            'cluster_token': '',
+        }
+
+        for rid in relation_ids('etcd-peer'):
+            for unit in related_units(rid):
+                rdata = relation_get(rid=rid, unit=unit)
+                ctxt['cluster_token'] = rdata.get('initial_cluster_token')
+                ctxt['peers'].append({
+                    'ip': rdata.get('ip'),
+                    'port': rdata.get('port'),
+                    'name': rdata.get('name'),
+                })
+
+        return ctxt

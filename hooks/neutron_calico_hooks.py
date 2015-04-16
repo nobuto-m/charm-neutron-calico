@@ -25,7 +25,10 @@ from neutron_calico_utils import (
     restart_map,
     additional_install_locations,
     local_ipv6_address,
+    force_etcd_restart,
 )
+
+from neutron_calico_context import EtcdContext
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -89,6 +92,18 @@ def bgp_route_reflector_joined(relation_id=None):
     relation_set(relation_id=relation_id,
                  addr=unit_private_ip(),
                  addr6=local_ipv6_address())
+
+
+@hooks.hook('etcd-peer-relation-joined')
+@hooks.hook('etcd-peer-relation-changed')
+def etcd_peer_force_restart(relation_id=None):
+    # note(cory.benfield): Mostly etcd does not require active management,
+    # but occasionally it does require a full config nuking. This does not
+    # play well with the standard neutron-api config management, so we
+    # treat etcd like the special snowflake it insists on being.
+    CONFIGS.register('/etc/init/etcd.conf', [EtcdContext()])
+    CONFIGS.write('/etc/init/etcd.conf')
+    force_etcd_restart()
 
 
 def main():
