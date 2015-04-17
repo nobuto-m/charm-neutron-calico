@@ -129,7 +129,7 @@ class CalicoPluginContext(context.NeutronContext):
 
 
 class EtcdContext(context.OSContextGenerator):
-    interfaces = ['etcd-peer']
+    interfaces = ['http']
 
     def __call__(self):
         peers = []
