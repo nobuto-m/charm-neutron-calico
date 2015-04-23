@@ -27,24 +27,6 @@ def _neutron_security_groups():
     return False
 
 
-def _plugin_ips():
-    '''
-    Insepcts the current neutron-plugin relation and determines the IP
-    address of the neutron-api install, which is where the Calico plugin
-    lives.
-    '''
-    for rid in relation_ids('neutron-plugin-api'):
-        for unit in related_units(rid):
-            rel = relation_get(attribute='addr', rid=rid, unit=unit)
-
-            if rel is not None:
-                # rel will be a domain name. Map it to an IP
-                ip = socket.getaddrinfo(rel, None)[0][4][0]
-                return ip
-
-    return ''
-
-
 class CalicoPluginContext(context.NeutronContext):
     interfaces = []
 
@@ -59,10 +41,6 @@ class CalicoPluginContext(context.NeutronContext):
     @property
     def neutron_security_groups(self):
         return _neutron_security_groups()
-
-    @property
-    def plugin_ips(self):
-        return _plugin_ips()
 
     def addrs_from_relation(self, relation, ip_version=4):
         addrs = []
@@ -103,8 +81,6 @@ class CalicoPluginContext(context.NeutronContext):
         calico_ctxt['debug'] = conf['debug']
         calico_ctxt['peer_ips'] = []
         calico_ctxt['peer_ips6'] = []
-
-        calico_ctxt['plugin_ip'] = self.plugin_ips
 
         # Our BGP peers are either route reflectors or our cluster peers.
         # Prefer route reflectors.

@@ -71,7 +71,6 @@ class CalicoPluginContextTest(CharmTestCase):
             'neutron_url': 'https://127.0.0.13:9696',
             'peer_ips': ['127.0.0.16'],
             'peer_ips6': ['aa::1'],
-            'plugin_ip': '127.0.0.16',
         }
         self.assertEquals(expect, napi_ctxt())
 
