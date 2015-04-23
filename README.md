@@ -11,18 +11,18 @@ For more information on Calico, check out the [Project Calico homepage](http://w
 To deploy (partial deployment of linked charms only):
 
     juju deploy rabbitmq-server
-    juju deploy neutron-api
+    juju deploy cs:~cory-benfield/neutron-api
     juju deploy nova-compute
-    juju deploy calico-acl-manager
-    juju deploy neutron-calico
+    juju deploy cs:~cory-benfield/etcd
+    juju deploy cs:~cory-benfield/neutron-calico
     juju add-relation neutron-calico nova-compute
     juju add-relation neutron-calico neutron-api
     juju add-relation neutron-calico rabbitmq-server
-    juju add-relation neutron-calico calico-acl-manager
+    juju add-relation neutron-calico etcd:etcd-peer
 
 When deploying at scale, you should optionally add a BGP route reflector:
 
-    juju deploy bird
+    juju deploy cs:~cory-benfield/bird
     juju add-relation neutron-calico bird
 
 # Restrictions
