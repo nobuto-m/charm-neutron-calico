@@ -94,13 +94,11 @@ class EtcdContextTest(CharmTestCase):
     def test_some_related_units(self):
         self.related_units.return_value = ['unit1']
         self.relation_ids.return_value = ['rid1', 'rid2']
-        self.test_relation.set({'ip': '172.18.18.18',
-                                'port': 8888,
-                                'name': 'testname'})
         result = (
             'testname=http://172.18.18.18:8888,'
             'testname=http://172.18.18.18:8888'
         )
+        self.test_relation.set({'cluster': result})
 
         ctxt = context.EtcdContext()
         expect = {'cluster': result}

@@ -30,8 +30,8 @@ requires:
     interface: neutron-plugin-api
   bgp-route-reflector:
     interface: bgp-route-reflector
-  etcd-peer:
-    interface: http
+  etcd-proxy:
+    interface: etcd-proxy
 peers:
   cluster:
     interface: neutron-calico-ha
