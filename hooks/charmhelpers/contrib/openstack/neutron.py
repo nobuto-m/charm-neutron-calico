@@ -1,5 +1,22 @@
+# Copyright 2014-2015 Canonical Limited.
+#
+# This file is part of charm-helpers.
+#
+# charm-helpers is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# charm-helpers is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+
 # Various utilies for dealing with Neutron and the renaming from Quantum.
 
+import six
 from subprocess import check_output
 
 from charmhelpers.core.hookenv import (
@@ -14,7 +31,7 @@ from charmhelpers.contrib.openstack.utils import os_release
 def headers_package():
     """Ensures correct linux-headers for running kernel are installed,
     for building DKMS package"""
-    kver = check_output(['uname', '-r']).strip()
+    kver = check_output(['uname', '-r']).decode('UTF-8').strip()
     return 'linux-headers-%s' % kver
 
 QUANTUM_CONF_DIR = '/etc/quantum'
@@ -22,7 +39,7 @@ QUANTUM_CONF_DIR = '/etc/quantum'
 
 def kernel_version():
     """ Retrieve the current major kernel version as a tuple e.g. (3, 13) """
-    kver = check_output(['uname', '-r']).strip()
+    kver = check_output(['uname', '-r']).decode('UTF-8').strip()
     kver = kver.split('.')
     return (int(kver[0]), int(kver[1]))
 
@@ -138,7 +155,8 @@ def neutron_plugins():
                                         relation_prefix='neutron',
                                         ssl_dir=NEUTRON_CONF_DIR)],
             'services': [],
-            'packages': [['neutron-plugin-cisco']],
+            'packages': [[headers_package()] + determine_dkms_package(),
+                         ['neutron-plugin-cisco']],
             'server_packages': ['neutron-server',
                                 'neutron-plugin-cisco'],
             'server_services': ['neutron-server']
@@ -151,7 +169,7 @@ def neutron_plugins():
                                         database=config('neutron-database'),
                                         relation_prefix='neutron',
                                         ssl_dir=NEUTRON_CONF_DIR)],
-            'services': ['calico-compute',
+            'services': ['calico-felix',
                          'bird',
                          'neutron-dhcp-agent',
                          'nova-api-metadata',
@@ -162,11 +180,22 @@ def neutron_plugins():
                           'neutron-dhcp-agent',
                           'nova-api-metadata',
                           'etcd']],
-            'server_packages': ['neutron-server',
-                                'calico-control',
-                                'etcd'],
+            'server_packages': ['neutron-server', 'calico-control', 'etcd'],
             'server_services': ['neutron-server', 'etcd']
         },
+        'vsp': {
+            'config': '/etc/neutron/plugins/nuage/nuage_plugin.ini',
+            'driver': 'neutron.plugins.nuage.plugin.NuagePlugin',
+            'contexts': [
+                context.SharedDBContext(user=config('neutron-database-user'),
+                                        database=config('neutron-database'),
+                                        relation_prefix='neutron',
+                                        ssl_dir=NEUTRON_CONF_DIR)],
+            'services': [],
+            'packages': [],
+            'server_packages': ['neutron-server', 'neutron-plugin-nuage'],
+            'server_services': ['neutron-server']
+        }
     }
     if release >= 'icehouse':
         # NOTE: patch in ml2 plugin for icehouse onwards
@@ -186,7 +215,8 @@ def neutron_plugin_attribute(plugin, attr, net_manager=None):
     elif manager == 'neutron':
         plugins = neutron_plugins()
     else:
-        log('Error: Network manager does not support plugins.')
+        log("Network manager '%s' does not support plugins." % (manager),
+            level=ERROR)
         raise Exception
 
     try:
@@ -223,3 +253,90 @@ def network_manager():
     else:
         # ensure accurate naming for all releases post-H
         return 'neutron'
+
+
+def parse_mappings(mappings, key_rvalue=False):
+    """By default mappings are lvalue keyed.
+
+    If key_rvalue is True, the mapping will be reversed to allow multiple
+    configs for the same lvalue.
+    """
+    parsed = {}
+    if mappings:
+        mappings = mappings.split()
+        for m in mappings:
+            p = m.partition(':')
+
+            if key_rvalue:
+                key_index = 2
+                val_index = 0
+                # if there is no rvalue skip to next
+                if not p[1]:
+                    continue
+            else:
+                key_index = 0
+                val_index = 2
+
+            key = p[key_index].strip()
+            parsed[key] = p[val_index].strip()
+
+    return parsed
+
+
+def parse_bridge_mappings(mappings):
+    """Parse bridge mappings.
+
+    Mappings must be a space-delimited list of provider:bridge mappings.
+
+    Returns dict of the form {provider:bridge}.
+    """
+    return parse_mappings(mappings)
+
+
+def parse_data_port_mappings(mappings, default_bridge='br-data'):
+    """Parse data port mappings.
+
+    Mappings must be a space-delimited list of port:bridge mappings.
+
+    Returns dict of the form {port:bridge} where port may be an mac address or
+    interface name.
+    """
+
+    # NOTE(dosaboy): we use rvalue for key to allow multiple values to be
+    # proposed for <port> since it may be a mac address which will differ
+    # across units this allowing first-known-good to be chosen.
+    _mappings = parse_mappings(mappings, key_rvalue=True)
+    if not _mappings or list(_mappings.values()) == ['']:
+        if not mappings:
+            return {}
+
+        # For backwards-compatibility we need to support port-only provided in
+        # config.
+        _mappings = {mappings.split()[0]: default_bridge}
+
+    ports = _mappings.keys()
+    if len(set(ports)) != len(ports):
+        raise Exception("It is not allowed to have the same port configured "
+                        "on more than one bridge")
+
+    return _mappings
+
+
+def parse_vlan_range_mappings(mappings):
+    """Parse vlan range mappings.
+
+    Mappings must be a space-delimited list of provider:start:end mappings.
+
+    The start:end range is optional and may be omitted.
+
+    Returns dict of the form {provider: (start, end)}.
+    """
+    _mappings = parse_mappings(mappings)
+    if not _mappings:
+        return {}
+
+    mappings = {}
+    for p, r in six.iteritems(_mappings):
+        mappings[p] = tuple(r.split(':'))
+
+    return mappings
