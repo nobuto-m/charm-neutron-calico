@@ -62,6 +62,14 @@ def config_changed():
     CONFIGS.write_all()
 
 
+@hooks.hook('neutron-plugin-relation-joined')
+def neutron_plugin_joined(relation_id=None):
+    rel_data = {
+        'metadata-shared-secret': 'secret',
+    }
+    relation_set(relation_id=relation_id, **rel_data)
+
+
 @hooks.hook('amqp-relation-joined')
 def amqp_joined(relation_id=None):
     relation_set(relation_id=relation_id,
