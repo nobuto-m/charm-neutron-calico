@@ -12,6 +12,7 @@ from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
     os_release,
+    get_os_codename_install_source,
 )
 from charmhelpers.fetch import (
     add_source,
@@ -65,14 +66,17 @@ def additional_install_locations():
     Add any required additional install locations of the charm. This
     will also force an immediate upgrade.
     '''
-    default_source = 'ppa:project-calico/icehouse'
+    calico_source = 'ppa:project-calico/icehouse'
 
     if config('calico-origin') != 'default':
-        default_source = config('calico-origin')
+        calico_source = config('calico-origin')
+    else:
+        release = get_os_codename_install_source(config('openstack-origin'))
+        calico_source = 'ppa:project-calico/%s' % release
 
-    # Temporary hack to get the PPA to work.
+    # Force UTF-8 to get the BIRD PPA to work.
     os.environ['LANG'] = 'en_US.UTF-8'
-    add_source(default_source)
+    add_source(calico_source)
     add_source('ppa:cz.nic-labs/bird')
 
     apt_update()
