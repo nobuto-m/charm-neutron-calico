@@ -6,6 +6,29 @@ options:
       Repository from which to install Calico packages. May be one of the
       following options: default, or ppa:somecustom/ppa. Note that this
       must be set before the 'install' hook runs.
+  openstack-origin:
+    default: distro
+    type: string
+    description: |
+      Repository from which to install.  May be one of the following:
+      distro (default), ppa:somecustom/ppa, a deb url sources entry,
+      or a supported Cloud Archive release pocket.
+
+      Supported Cloud Archive sources include:
+
+      cloud:<series>-<openstack-release>
+      cloud:<series>-<openstack-release>/updates
+      cloud:<series>-<openstack-release>/staging
+      cloud:<series>-<openstack-release>/proposed
+
+      For series=Precise we support cloud archives for openstack-release:
+         * icehouse
+
+      For series=Trusty we support cloud archives for openstack-release:
+         * juno
+         * kilo
+
+      NOTE: this option must be set before install.
   rabbit-user:
     default: neutron
     type: string
