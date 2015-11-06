@@ -7,7 +7,7 @@ lint:
 	@charm proof
 
 testdep:
-	@sudo apt-get install -q -y python-nose python-mock python-netaddr python-netifaces
+	@sudo apt-get install -q -y python-nose python-mock python-netaddr python-netifaces python-jinja2
 
 test: testdep
 	@echo Starting tests...
