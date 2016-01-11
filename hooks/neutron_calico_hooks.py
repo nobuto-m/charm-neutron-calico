@@ -65,7 +65,7 @@ def config_changed():
 @hooks.hook('neutron-plugin-relation-joined')
 def neutron_plugin_joined(relation_id=None):
     rel_data = {
-        'metadata-shared-secret': 'secret',
+        'enable-metadata': 'True',
     }
     relation_set(relation_id=relation_id, **rel_data)
 
