@@ -14,7 +14,7 @@ description: |
   .
   This charm provides the OpenStack Neutron Calico Agent, managing
   L3 connectivity on nova-compute services.
-categories:
+tags:
   - openstack
 provides:
   neutron-plugin:
