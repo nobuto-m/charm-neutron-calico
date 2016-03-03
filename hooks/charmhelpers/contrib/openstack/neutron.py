@@ -171,15 +171,13 @@ def neutron_plugins():
                                         ssl_dir=NEUTRON_CONF_DIR)],
             'services': ['calico-felix',
                          'bird',
-                         'neutron-dhcp-agent',
+                         'calico-dhcp-agent',
                          'nova-api-metadata',
                          'etcd'],
-            'packages': [determine_dkms_package(),
-                         ['calico-compute',
-                          'bird',
-                          'neutron-dhcp-agent',
-                          'nova-api-metadata',
-                          'etcd']],
+            'packages': ['calico-compute',
+                         'calico-dhcp-agent',
+                         'nova-api-metadata',
+                         'etcd'],
             'server_packages': ['neutron-server', 'calico-control', 'etcd'],
             'server_services': ['neutron-server', 'etcd']
         },
@@ -247,6 +245,14 @@ def neutron_plugins():
             'networking_plumgrid.neutron.plugins.plugin.NeutronPluginPLUMgridV2')
         plugins['plumgrid']['server_packages'].remove(
             'neutron-plugin-plumgrid')
+
+    # For Calico pre-Liberty, use Neutron DHCP agent instead of Calico DHCP
+    # agent.
+    if release < 'liberty':
+        plugins['Calico']['packages'].remove('calico-dhcp-agent')
+        plugins['Calico']['services'].remove('calico-dhcp-agent')
+        plugins['Calico']['services'].append('neutron-dhcp-agent')
+
     return plugins
 
 
