@@ -22,4 +22,4 @@ sync: bin/charm_helpers_sync.py
 	@$(PYTHON) bin/charm_helpers_sync.py -c charm-helpers-sync.yaml
 
 publish: lint test
-	bzr push lp:~cory-benfield/calico-charms/neutron-calico
+	bzr push lp:~project-calico/charms/trusty/neutron-calico

@@ -26,6 +26,7 @@ from neutron_calico_utils import (
     additional_install_locations,
     local_ipv6_address,
     force_etcd_restart,
+    configure_dhcp_agents,
 )
 
 from neutron_calico_context import EtcdContext
@@ -41,6 +42,7 @@ def install():
     pkgs = determine_packages()
     for pkg in pkgs:
         apt_install(pkg, fatal=True)
+    configure_dhcp_agents()
 
 
 @hooks.hook('neutron-plugin-relation-changed')

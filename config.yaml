@@ -27,6 +27,7 @@ options:
       For series=Trusty we support cloud archives for openstack-release:
          * juno
          * kilo
+         * liberty
 
       NOTE: this option must be set before install.
   rabbit-user:

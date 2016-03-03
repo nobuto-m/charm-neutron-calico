@@ -1,6 +1,6 @@
 name: neutron-calico
 subordinate: true
-maintainer: Cory Benfield <cory.benfield@metaswitch.com>
+maintainer: Neil Jerram <Neil.Jerram@metaswitch.com>
 summary: "OpenStack Neutron Calico Agent"
 description: |
   Neutron is a virtual network service for Openstack, and a part of

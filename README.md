@@ -27,11 +27,10 @@ When deploying at scale, you should optionally add a BGP route reflector:
 
 # Restrictions
 
-It should only be used with OpenStack Icehouse and above and requires a seperate neutron-api service to have been deployed.
+It should only be used with OpenStack Icehouse and above and requires a separate neutron-api service to have been deployed.
 
 # Contact Information
 
 - Find out more on [the Project Calico website](http://www.projectcalico.org/).
-- Report bugs with this charm on [GitHub](https://github.com/metaswitch/calico), [Launchpad](https://code.launchpad.net/~project-calico/calico-charms/neutron-calico), or on our mailing list as shown below.
+- Report bugs with this charm on [GitHub](https://github.com/metaswitch/calico), [Launchpad](https://code.launchpad.net/~project-calico/charms/trusty/neutron-calico/trunk), or on our mailing list as shown below.
 - Contact us on our mailing list [here](httpp://www.projectcalico.org/community/).
-

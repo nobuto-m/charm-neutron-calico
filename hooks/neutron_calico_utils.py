@@ -7,7 +7,7 @@ from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
 from charmhelpers.core.hookenv import config
-from charmhelpers.core.host import service_stop, service_start
+from charmhelpers.core.host import service_stop, service_start, service_pause
 from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
@@ -33,10 +33,14 @@ BIRD_CONF_DIR = "/etc/bird"
 BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
 BIRD6_CONF = "%s/bird6.conf" % BIRD_CONF_DIR
 
+DHCP_AGENT = 'neutron-dhcp-agent'
+if get_os_codename_install_source(config('openstack-origin')) >= 'liberty':
+    DHCP_AGENT = 'calico-dhcp-agent'
+
 BASE_RESOURCE_MAP = OrderedDict([
     (NEUTRON_CONF, {
         'services': ['calico-felix',
-                     'neutron-dhcp-agent',
+                     DHCP_AGENT,
                      'nova-api-metadata'],
         'contexts': [neutron_calico_context.CalicoPluginContext(),
                      context.AMQPContext()],
@@ -46,7 +50,7 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     }),
     (DHCP_CONF, {
-        'services': ['neutron-dhcp-agent'],
+        'services': [DHCP_AGENT],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     }),
     (FELIX_CONF, {
@@ -72,7 +76,17 @@ def additional_install_locations():
         calico_source = config('calico-origin')
     else:
         release = get_os_codename_install_source(config('openstack-origin'))
-        calico_source = 'ppa:project-calico/%s' % release
+        if release in ('icehouse', 'juno', 'kilo'):
+            # Prior to the Liberty release, Calico's Nova and Neutron changes
+            # were not fully upstreamed, so we need to point to a
+            # release-specific PPA that includes Calico-specific Nova and
+            # Neutron packages.
+            calico_source = 'ppa:project-calico/%s' % release
+        else:
+            # From Liberty onwards, we can point to a PPA that does not include
+            # any patched OpenStack packages, and hence is independent of the
+            # OpenStack release.
+            calico_source = 'ppa:project-calico/stable'
 
     # Force UTF-8 to get the BIRD PPA to work.
     os.environ['LANG'] = 'en_US.UTF-8'
@@ -151,3 +165,13 @@ def force_etcd_restart():
     for directory in glob.glob('/var/lib/etcd/*'):
         shutil.rmtree(directory)
     service_start('etcd')
+
+
+def configure_dhcp_agents():
+    '''
+    If we're using the Calico DHCP agent, ensure that the Neutron DHCP agent is
+    stopped and disabled.
+    '''
+    if DHCP_AGENT == 'calico-dhcp-agent':
+        # Stop and disable the Neutron DHCP agent.
+        service_pause('neutron-dhcp-agent')
