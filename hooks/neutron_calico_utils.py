@@ -6,7 +6,7 @@ import netifaces
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
-from charmhelpers.core.hookenv import config
+from charmhelpers.core.hookenv import config, log
 from charmhelpers.core.host import service_stop, service_start, service_pause
 from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
@@ -45,10 +45,6 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext(),
                      context.AMQPContext()],
     }),
-    (BIRD_CONF, {
-        'services': ['bird'],
-        'contexts': [neutron_calico_context.CalicoPluginContext()],
-    }),
     (DHCP_CONF, {
         'services': [DHCP_AGENT],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
@@ -58,6 +54,10 @@ BASE_RESOURCE_MAP = OrderedDict([
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     })
 ])
+BIRD_RESOURCE_MAP = {
+    'services': ['bird'],
+    'contexts': [neutron_calico_context.CalicoPluginContext()],
+}
 BIRD6_RESOURCE_MAP = {
     'services': ['bird6'],
     'contexts': [neutron_calico_context.CalicoPluginContext()],
@@ -123,8 +123,13 @@ def resource_map():
     '''
     resource_map = deepcopy(BASE_RESOURCE_MAP)
 
-    if config('enable-ipv6'):
-        resource_map[BIRD6_CONF] = BIRD6_RESOURCE_MAP
+    if not config('keep-bird-config'):
+        # Service config allows us to change the BIRD config.
+        resource_map[BIRD_CONF] = BIRD_RESOURCE_MAP
+        if config('enable-ipv6'):
+            resource_map[BIRD6_CONF] = BIRD6_RESOURCE_MAP
+    else:
+        log('keep-bird-config tells us not to touch existing BIRD config')
 
     return resource_map
 

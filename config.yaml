@@ -6,6 +6,20 @@ options:
       Repository from which to install Calico packages. May be one of the
       following options: default, or ppa:somecustom/ppa. Note that this
       must be set before the 'install' hook runs.
+  keep-bird-config:
+    type: boolean
+    default: False
+    description: |
+      Do not change the BIRD config.  By default, neutron-calico replaces any
+      existing BIRD config with one that is suitable for Calico operation with
+      a route reflector, with all Calico-managed VM routes being exported to
+      that route reflector.  However in real deployments the required BIRD
+      config may be more complex than that - for example exporting VM routes to
+      multiple route reflectors on parallel fabric networks, or handling
+      different sets of routes differently.  Setting this option to True tells
+      neutron-calico not to touch the BIRD config, and so allows a deployment
+      to provision (by some other means) the BIRD config that it wants, either
+      before or after the deployment of this charm.
   openstack-origin:
     default: distro
     type: string
