@@ -35,3 +35,6 @@ requires:
 peers:
   cluster:
     interface: neutron-calico-ha
+series:
+  - trusty
+  - xenial
