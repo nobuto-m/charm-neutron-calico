@@ -70,10 +70,10 @@ def additional_install_locations():
     Add any required additional install locations of the charm. This
     will also force an immediate upgrade.
     '''
-    calico_source = 'ppa:project-calico/icehouse'
+    calico_sources = ['ppa:project-calico/icehouse']
 
     if config('calico-origin') != 'default':
-        calico_source = config('calico-origin')
+        calico_sources = config('calico-origin').split(' ')
     else:
         release = get_os_codename_install_source(config('openstack-origin'))
         if release in ('icehouse', 'juno', 'kilo'):
@@ -81,12 +81,16 @@ def additional_install_locations():
             # were not fully upstreamed, so we need to point to a
             # release-specific PPA that includes Calico-specific Nova and
             # Neutron packages.
-            calico_source = 'ppa:project-calico/%s' % release
+            calico_sources = ['ppa:project-calico/%s' % release]
         else:
-            # From Liberty onwards, we can point to a PPA that does not include
-            # any patched OpenStack packages, and hence is independent of the
-            # OpenStack release.
-            calico_source = 'ppa:project-calico/stable'
+            # From Liberty onwards, we point to two PPAs: one that contains the
+            # latest available core Calico 1.4 code, and one that contains the
+            # latest available Calico/OpenStack integration pieces.
+            calico_sources = ['ppa:project-calico/calico-1.4',
+                              'ppa:project-calico/openstack-next']
+
+    for calico_source in calico_sources:
+        add_source(calico_source)
 
     # Force UTF-8 to get the BIRD PPA to work.
     os.environ['LANG'] = 'en_US.UTF-8'
