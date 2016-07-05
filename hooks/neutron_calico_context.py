@@ -1,3 +1,4 @@
+import os
 import socket
 
 from charmhelpers.core.hookenv import (
@@ -5,6 +6,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_get,
     config,
+    log,
     unit_get,
 )
 from charmhelpers.contrib.openstack import context
@@ -107,17 +109,45 @@ class CalicoPluginContext(context.NeutronContext):
 class EtcdContext(context.OSContextGenerator):
     interfaces = ['etcd-proxy']
 
+    def _save_data(self, data, path):
+        ''' Save the specified data to a file indicated by path, creating the
+        parent directory if needed.'''
+        parent = os.path.dirname(path)
+        if not os.path.isdir(parent):
+            os.makedirs(parent)
+        with open(path, 'w') as stream:
+            stream.write(data)
+        return path
+
     def __call__(self):
-        ctxt = {'cluster': ''}
-        cluster_string = ''
+        ctxt = {}
+        cluster_string = None
+        client_cert = None
+        client_key = None
+        client_ca = None
 
         for rid in relation_ids('etcd-proxy'):
             for unit in related_units(rid):
                 rdata = relation_get(rid=rid, unit=unit)
-                cluster_string = rdata.get('cluster')
-                if cluster_string:
+                cluster_string = cluster_string or rdata.get('cluster')
+                client_cert = client_cert or rdata.get('client_cert')
+                client_key = client_key or rdata.get('client_key')
+                client_ca = client_ca or rdata.get('client_ca')
+                if cluster_string and client_cert and client_key and client_ca:
                     break
 
-        ctxt['cluster'] = cluster_string
+        if cluster_string:
+            ctxt['cluster'] = cluster_string
+        if client_cert:
+            ctxt['server_certificate'] = self._save_data(client_cert,
+                                                         '/tmp/etcd_cert')
+        if client_key:
+            ctxt['server_key'] = self._save_data(client_key,
+                                                 '/tmp/etcd_key')
+        if client_ca:
+            ctxt['ca_certificate'] = self._save_data(client_ca,
+                                                     '/tmp/etcd_ca')
+
+        log('EtcdContext: %r' % ctxt)
 
         return ctxt
