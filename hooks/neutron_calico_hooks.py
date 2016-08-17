@@ -31,7 +31,6 @@ from neutron_calico_utils import (
 
 from neutron_calico_context import (
     EtcdContext,
-    etcd_config_hash,
 )
 
 hooks = Hooks()
@@ -113,22 +112,15 @@ def etcd_proxy_force_restart(relation_id=None):
     # but occasionally it does require a full config nuking. This does not
     # play well with the standard neutron-api config management, so we
     # treat etcd like the special snowflake it insists on being.
-    old_etcd_config_hash = etcd_config_hash()
     etcd_context = EtcdContext()
     CONFIGS.register('/etc/init/etcd.conf', [etcd_context])
-    CONFIGS.write('/etc/init/etcd.conf')
     CONFIGS.register('/etc/default/etcd', [etcd_context])
-    CONFIGS.write('/etc/default/etcd')
-    new_etcd_config_hash = etcd_config_hash()
     ready_contexts = CONFIGS.complete_contexts()
 
-    log('Old etcd config hash %s' % old_etcd_config_hash)
-    log('New etcd config hash %s' % new_etcd_config_hash)
-    log('Ready contexts %s' % ready_contexts)
-
-    if ('etcd-proxy' in ready_contexts and
-        new_etcd_config_hash != old_etcd_config_hash):
+    if ('etcd-proxy' in ready_contexts):
         log('Force etcd restart')
+        CONFIGS.write('/etc/init/etcd.conf')
+        CONFIGS.write('/etc/default/etcd')
         force_etcd_restart()
 
 
