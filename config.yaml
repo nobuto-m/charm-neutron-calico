@@ -6,6 +6,15 @@ options:
       Repository from which to install Calico packages. May be one of the
       following options: default, or ppa:somecustom/ppa. Note that this
       must be set before the 'install' hook runs.
+  etcd-package-url:
+    default:
+    type: string
+    description: |
+      URL for an etcd package to install. If this URL has a newer package
+      version than the current package in the Ubuntu archive, it will replace
+      the Ubuntu archive package.
+
+      Example: http://launchpadlibrarian.net/274096873/etcd_2.3.7+dfsg-4_amd64.deb
   keep-bird-config:
     type: boolean
     default: False

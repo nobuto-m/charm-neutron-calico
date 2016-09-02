@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import subprocess
 import sys
 
 from charmhelpers.core.hookenv import (
@@ -44,6 +45,17 @@ def install():
     pkgs = determine_packages()
     for pkg in pkgs:
         apt_install(pkg, fatal=True)
+    etcd_package_url = config('etcd-package-url')
+    if etcd_package_url.startswith('http'):
+        subprocess.check_call([
+            "wget",
+            etcd_package_url
+        ])
+        subprocess.check_call([
+            "dpkg",
+            "-i",
+            etcd_package_url.split('/')[-1]
+        ])
     configure_dhcp_agents()
 
 
