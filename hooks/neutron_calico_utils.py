@@ -7,7 +7,12 @@ from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from copy import deepcopy
 
 from charmhelpers.core.hookenv import config, log
-from charmhelpers.core.host import service_stop, service_start, service_pause
+from charmhelpers.core.host import (
+    mkdir,
+    service_stop,
+    service_start,
+    service_pause
+)
 from charmhelpers.contrib.openstack import context, templating
 from collections import OrderedDict
 from charmhelpers.contrib.openstack.utils import (
@@ -27,7 +32,8 @@ NEUTRON_CONF_DIR = "/etc/neutron"
 NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
 NEUTRON_DEFAULT = '/etc/default/neutron-server'
 ML2_CONF = '%s/plugins/ml2/ml2_conf.ini' % NEUTRON_CONF_DIR
-FELIX_CONF = '/etc/calico/felix.cfg'
+FELIX_CONF_DIR = '/etc/calico'
+FELIX_CONF = FELIX_CONF_DIR + '/felix.cfg'
 DHCP_CONF = "%s/dhcp_agent.ini" % NEUTRON_CONF_DIR
 BIRD_CONF_DIR = "/etc/bird"
 BIRD_CONF = "%s/bird.conf" % BIRD_CONF_DIR
@@ -47,10 +53,6 @@ BASE_RESOURCE_MAP = OrderedDict([
     }),
     (DHCP_CONF, {
         'services': [DHCP_AGENT],
-        'contexts': [neutron_calico_context.CalicoPluginContext()],
-    }),
-    (FELIX_CONF, {
-        'services': ['calico-felix'],
         'contexts': [neutron_calico_context.CalicoPluginContext()],
     })
 ])
@@ -101,6 +103,17 @@ def additional_install_locations():
     apt_install(['dnsmasq-base'])
 
     return
+
+
+def maybe_create_felix_cfg():
+    if config('disable-calico-usage-reporting'):
+        # Write a Felix config file to disable Calico usage reporting.
+        # (Otherwise we don't need any Felix config.)
+        mkdir(FELIX_CONF_DIR, perms=0o755)
+        with open(FELIX_CONF, 'w') as f:
+            f.write('''[global]
+UsageReportingEnabled = false
+''')
 
 
 def determine_packages():

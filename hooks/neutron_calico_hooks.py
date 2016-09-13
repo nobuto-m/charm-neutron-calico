@@ -28,6 +28,7 @@ from neutron_calico_utils import (
     local_ipv6_address,
     force_etcd_restart,
     configure_dhcp_agents,
+    maybe_create_felix_cfg,
 )
 
 from neutron_calico_context import (
@@ -41,6 +42,7 @@ CONFIGS = register_configs()
 @hooks.hook()
 def install():
     additional_install_locations()
+    maybe_create_felix_cfg()
     apt_update()
     pkgs = determine_packages()
     for pkg in pkgs:

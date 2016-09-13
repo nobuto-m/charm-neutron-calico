@@ -6,6 +6,11 @@ options:
       Repository from which to install Calico packages. May be one of the
       following options: default, or ppa:somecustom/ppa. Note that this
       must be set before the 'install' hook runs.
+  disable-calico-usage-reporting:
+    type: boolean
+    default: False
+    description: |
+      If set to True, disables Calico usage reporting.
   etcd-package-url:
     default:
     type: string
