@@ -48,7 +48,7 @@ def install():
     for pkg in pkgs:
         apt_install(pkg, fatal=True)
     etcd_package_url = config('etcd-package-url')
-    if etcd_package_url.startswith('http'):
+    if etcd_package_url and etcd_package_url.startswith('http'):
         subprocess.check_call([
             "wget",
             etcd_package_url
