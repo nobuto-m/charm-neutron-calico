@@ -106,13 +106,15 @@ def additional_install_locations():
 
 
 def maybe_create_felix_cfg():
-    if config('disable-calico-usage-reporting'):
-        # Write a Felix config file to disable Calico usage reporting.
-        # (Otherwise we don't need any Felix config.)
-        mkdir(FELIX_CONF_DIR, perms=0o755)
-        with open(FELIX_CONF, 'w') as f:
-            f.write('''[global]
-UsageReportingEnabled = false
+    # Write a Felix config file to set the etcd address and perhaps to disable
+    # Calico usage reporting.
+    mkdir(FELIX_CONF_DIR, perms=0o755)
+    with open(FELIX_CONF, 'w') as f:
+        f.write('''[global]
+EtcdAddr = 127.0.0.1:4001
+''')
+        if config('disable-calico-usage-reporting'):
+            f.write('''UsageReportingEnabled = false
 ''')
 
 
