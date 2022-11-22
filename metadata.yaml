@@ -36,5 +36,4 @@ peers:
   cluster:
     interface: neutron-calico-ha
 series:
-  - xenial
-  - trusty
+  - focal
