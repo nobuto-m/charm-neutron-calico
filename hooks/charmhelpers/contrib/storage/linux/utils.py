@@ -1,28 +1,67 @@
 # Copyright 2014-2015 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
+#  http://www.apache.org/licenses/LICENSE-2.0
 #
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import re
 from stat import S_ISBLK
 
 from subprocess import (
+    CalledProcessError,
     check_call,
     check_output,
     call
 )
+
+
+def _luks_uuid(dev):
+    """
+    Check to see if dev is a LUKS encrypted volume, returning the UUID
+    of volume if it is.
+
+    :param: dev: path to block device to check.
+    :returns: str. UUID of LUKS device or None if not a LUKS device
+    """
+    try:
+        cmd = ['cryptsetup', 'luksUUID', dev]
+        return check_output(cmd).decode('UTF-8').strip()
+    except CalledProcessError:
+        return None
+
+
+def is_luks_device(dev):
+    """
+    Determine if dev is a LUKS-formatted block device.
+
+    :param: dev: A full path to a block device to check for LUKS header
+    presence
+    :returns: boolean: indicates whether a device is used based on LUKS header.
+    """
+    return True if _luks_uuid(dev) else False
+
+
+def is_mapped_luks_device(dev):
+    """
+    Determine if dev is a mapped LUKS device
+    :param: dev: A full path to a block device to be checked
+    :returns: boolean: indicates whether a device is mapped
+    """
+    _, dirs, _ = next(os.walk(
+        '/sys/class/block/{}/holders/'
+        .format(os.path.basename(os.path.realpath(dev))))
+    )
+    is_held = len(dirs) > 0
+    return is_held and is_luks_device(dev)
 
 
 def is_block_device(path):
@@ -64,8 +103,26 @@ def is_device_mounted(device):
     :returns: boolean: True if the path represents a mounted device, False if
         it doesn't.
     '''
-    is_partition = bool(re.search(r".*[0-9]+\b", device))
-    out = check_output(['mount']).decode('UTF-8')
-    if is_partition:
-        return bool(re.search(device + r"\b", out))
-    return bool(re.search(device + r"[0-9]*\b", out))
+    try:
+        out = check_output(['lsblk', '-P', device]).decode('UTF-8')
+    except Exception:
+        return False
+    return bool(re.search(r'MOUNTPOINT=".+"', out))
+
+
+def mkfs_xfs(device, force=False, inode_size=1024):
+    """Format device with XFS filesystem.
+
+    By default this should fail if the device already has a filesystem on it.
+    :param device: Full path to device to format
+    :ptype device: tr
+    :param force: Force operation
+    :ptype: force: boolean
+    :param inode_size: XFS inode size in bytes
+    :ptype inode_size: int"""
+    cmd = ['mkfs.xfs']
+    if force:
+        cmd.append("-f")
+
+    cmd += ['-i', "size={}".format(inode_size), device]
+    check_call(cmd)

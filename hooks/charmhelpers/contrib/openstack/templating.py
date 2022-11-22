@@ -1,18 +1,16 @@
 # Copyright 2014-2015 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
+#  http://www.apache.org/licenses/LICENSE-2.0
 #
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 
@@ -22,7 +20,8 @@ from charmhelpers.fetch import apt_install, apt_update
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
-    INFO
+    INFO,
+    TRACE
 )
 from charmhelpers.contrib.openstack.utils import OPENSTACK_CODENAMES
 
@@ -30,7 +29,10 @@ try:
     from jinja2 import FileSystemLoader, ChoiceLoader, Environment, exceptions
 except ImportError:
     apt_update(fatal=True)
-    apt_install('python-jinja2', fatal=True)
+    if six.PY2:
+        apt_install('python-jinja2', fatal=True)
+    else:
+        apt_install('python3-jinja2', fatal=True)
     from jinja2 import FileSystemLoader, ChoiceLoader, Environment, exceptions
 
 
@@ -79,8 +81,10 @@ def get_loader(templates_dir, os_release):
             loaders.insert(0, FileSystemLoader(tmpl_dir))
         if rel == os_release:
             break
+    # demote this log to the lowest level; we don't really need to see these
+    # lots in production even when debugging.
     log('Creating choice loader with dirs: %s' %
-        [l.searchpath for l in loaders], level=INFO)
+        [l.searchpath for l in loaders], level=TRACE)
     return ChoiceLoader(loaders)
 
 
@@ -89,7 +93,8 @@ class OSConfigTemplate(object):
     Associates a config file template with a list of context generators.
     Responsible for constructing a template context based on those generators.
     """
-    def __init__(self, config_file, contexts):
+
+    def __init__(self, config_file, contexts, config_template=None):
         self.config_file = config_file
 
         if hasattr(contexts, '__call__'):
@@ -98,6 +103,8 @@ class OSConfigTemplate(object):
             self.contexts = contexts
 
         self._complete_contexts = []
+
+        self.config_template = config_template
 
     def context(self):
         ctxt = {}
@@ -119,6 +126,11 @@ class OSConfigTemplate(object):
             return self._complete_contexts
         self.context()
         return self._complete_contexts
+
+    @property
+    def is_string_template(self):
+        """:returns: Boolean if this instance is a template initialised with a string"""
+        return self.config_template is not None
 
 
 class OSConfigRenderer(object):
@@ -144,6 +156,10 @@ class OSConfigRenderer(object):
                          contexts=[context.IdentityServiceContext()])
         configs.register(config_file='/etc/haproxy/haproxy.conf',
                          contexts=[context.HAProxyContext()])
+        configs.register(config_file='/etc/keystone/policy.d/extra.cfg',
+                         contexts=[context.ExtraPolicyContext()
+                                   context.KeystoneContext()],
+                         config_template=hookenv.config('extra-policy'))
         # write out a single config
         configs.write('/etc/nova/nova.conf')
         # write out all registered configs
@@ -167,7 +183,7 @@ class OSConfigRenderer(object):
         /tmp/templates/grizzly/api-paste.ini
         /tmp/templates/havana/api-paste.ini
 
-    Since it was registered with the grizzly release, it first seraches
+    Since it was registered with the grizzly release, it first searches
     the grizzly directory for nova.conf, then the templates dir.
 
     When writing api-paste.ini, it will find the template in the grizzly
@@ -209,16 +225,28 @@ class OSConfigRenderer(object):
             # if this code is running, the object is created pre-install hook.
             # jinja2 shouldn't get touched until the module is reloaded on next
             # hook execution, with proper jinja2 bits successfully imported.
-            apt_install('python-jinja2')
+            if six.PY2:
+                apt_install('python-jinja2')
+            else:
+                apt_install('python3-jinja2')
 
-    def register(self, config_file, contexts):
+    def register(self, config_file, contexts, config_template=None):
         """
         Register a config file with a list of context generators to be called
         during rendering.
+        config_template can be used to load a template from a string instead of
+        using template loaders and template files.
+        :param config_file (str): a path where a config file will be rendered
+        :param contexts (list): a list of context dictionaries with kv pairs
+        :param config_template (str): an optional template string to use
         """
-        self.templates[config_file] = OSConfigTemplate(config_file=config_file,
-                                                       contexts=contexts)
-        log('Registered config file: %s' % config_file, level=INFO)
+        self.templates[config_file] = OSConfigTemplate(
+            config_file=config_file,
+            contexts=contexts,
+            config_template=config_template
+        )
+        log('Registered config file: {}'.format(config_file),
+            level=INFO)
 
     def _get_tmpl_env(self):
         if not self._tmpl_env:
@@ -228,32 +256,58 @@ class OSConfigRenderer(object):
     def _get_template(self, template):
         self._get_tmpl_env()
         template = self._tmpl_env.get_template(template)
-        log('Loaded template from %s' % template.filename, level=INFO)
+        log('Loaded template from {}'.format(template.filename),
+            level=INFO)
+        return template
+
+    def _get_template_from_string(self, ostmpl):
+        '''
+        Get a jinja2 template object from a string.
+        :param ostmpl: OSConfigTemplate to use as a data source.
+        '''
+        self._get_tmpl_env()
+        template = self._tmpl_env.from_string(ostmpl.config_template)
+        log('Loaded a template from a string for {}'.format(
+            ostmpl.config_file),
+            level=INFO)
         return template
 
     def render(self, config_file):
         if config_file not in self.templates:
-            log('Config not registered: %s' % config_file, level=ERROR)
+            log('Config not registered: {}'.format(config_file), level=ERROR)
             raise OSConfigException
-        ctxt = self.templates[config_file].context()
 
-        _tmpl = os.path.basename(config_file)
-        try:
-            template = self._get_template(_tmpl)
-        except exceptions.TemplateNotFound:
-            # if no template is found with basename, try looking for it
-            # using a munged full path, eg:
-            #   /etc/apache2/apache2.conf -> etc_apache2_apache2.conf
-            _tmpl = '_'.join(config_file.split('/')[1:])
+        ostmpl = self.templates[config_file]
+        ctxt = ostmpl.context()
+
+        if ostmpl.is_string_template:
+            template = self._get_template_from_string(ostmpl)
+            log('Rendering from a string template: '
+                '{}'.format(config_file),
+                level=INFO)
+        else:
+            _tmpl = os.path.basename(config_file)
             try:
                 template = self._get_template(_tmpl)
-            except exceptions.TemplateNotFound as e:
-                log('Could not load template from %s by %s or %s.' %
-                    (self.templates_dir, os.path.basename(config_file), _tmpl),
-                    level=ERROR)
-                raise e
+            except exceptions.TemplateNotFound:
+                # if no template is found with basename, try looking
+                # for it using a munged full path, eg:
+                # /etc/apache2/apache2.conf -> etc_apache2_apache2.conf
+                _tmpl = '_'.join(config_file.split('/')[1:])
+                try:
+                    template = self._get_template(_tmpl)
+                except exceptions.TemplateNotFound as e:
+                    log('Could not load template from {} by {} or {}.'
+                        ''.format(
+                            self.templates_dir,
+                            os.path.basename(config_file),
+                            _tmpl
+                        ),
+                        level=ERROR)
+                    raise e
 
-        log('Rendering from template: %s' % _tmpl, level=INFO)
+            log('Rendering from template: {}'.format(config_file),
+                level=INFO)
         return template.render(ctxt)
 
     def write(self, config_file):
@@ -265,6 +319,8 @@ class OSConfigRenderer(object):
             raise OSConfigException
 
         _out = self.render(config_file)
+        if six.PY3:
+            _out = _out.encode('UTF-8')
 
         with open(config_file, 'wb') as out:
             out.write(_out)
